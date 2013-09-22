@@ -25,7 +25,6 @@ module Snap.Internal.Test.RequestBuilder
   , runHandlerM
   , setContentType
   , setHeader
-  , addCookies  
   , setHttpVersion
   , setQueryString
   , setQueryStringRaw
@@ -150,7 +149,8 @@ buildRequest mm = do
                           return $ parseUrlEncoded s
                         else return Map.empty
 
-        rPut $ rq { rqParams      = Map.unionWith (++) queryParams postParams
+        let allParams = [rqParams rq, queryParams, postParams]
+        rPut $ rq { rqParams      = Map.unionsWith (++) allParams
                   , rqQueryParams = queryParams }
 
 
@@ -432,11 +432,6 @@ setHeader k v = rModify (H.setHeader k v)
 addHeader :: (Monad m) => CI ByteString -> ByteString -> RequestBuilder m ()
 addHeader k v = rModify (H.addHeader k v)
 
-------------------------------------------------------------------------------
--- | Adds the given cookies to the request being built.
-addCookies :: (Monad m) => [Cookie] -> RequestBuilder m ()
-addCookies cookies = do
-  rModify $ \rq -> rq { rqCookies = rqCookies rq ++ cookies }
 
 ------------------------------------------------------------------------------
 -- | Sets the request's @content-type@ to the given MIME type.
@@ -470,6 +465,7 @@ setRequestPath p0 = do
 
   where
     p = if S.isPrefixOf "/" p0 then S.drop 1 p0 else p0
+
 
 ------------------------------------------------------------------------------
 -- | Sets the request's params.
